@@ -1,8 +1,15 @@
 import chromadb
-from .loader import load_pdf
-from .chunker import chunk_text
-from .vector_store import create_collection, add_chunks, retrieve
-from .generator import generate_answer
+
+try:
+    from .loader import load_pdf
+    from .chunker import chunk_text
+    from .vector_store import create_collection, add_chunks, retrieve
+    from .generator import generate_answer
+except ImportError:
+    from loader import load_pdf
+    from chunker import chunk_text
+    from vector_store import create_collection, add_chunks, retrieve
+    from generator import generate_answer
 
 
 class RAGPipeline:
@@ -48,9 +55,13 @@ class RAGPipeline:
 
 # Test thử
 if __name__ == "__main__":
-    rag = RAGPipeline(pdf_path="data/Chuong_trinh_dao_tao.pdf")
+    # ĐƯỜNG DẪN ĐÚNG: Chỉ cần đi thẳng vào thư mục data
+    pdf_path = "data/Chuong_trinh_dao_tao.pdf"
     
+    print(f"⏳ Bắt đầu nạp file từ: {pdf_path}")
+    rag = RAGPipeline(pdf_path=pdf_path)
+    
+    # Thực hiện hỏi đáp
     result = rag.ask("Sinh viên phải tích lũy đủ bao nhiêu tín chỉ?")
-    print(f"Câu hỏi: {result['question']}")
-    print(f"Trả lời: {result['answer']}")
-    print(f"\nNguồn: {result['sources'][0][:200]}")
+    print(f"\n❓ Câu hỏi: {result['question']}")
+    print(f"🤖 Trả lời: {result['answer']}")

@@ -23,7 +23,7 @@ if __name__ == "__main__":
     from loader import load_pdf
     
     # Load PDF
-    text = load_pdf("data/CV.pdf")
+    text = load_pdf("data/Chuong_trinh_dao_tao.pdf")
     
     # Chunk
     chunks = chunk_text(text)

@@ -1,5 +1,12 @@
 import chromadb
-from .embedder import embed_chunks, embed_query
+
+
+def _import_embedder():
+    try:
+        from .embedder import embed_chunks, embed_query
+    except ImportError:
+        from embedder import embed_chunks, embed_query
+    return embed_chunks, embed_query
 
 # Khởi tạo ChromaDB lưu trên disk
 client = chromadb.PersistentClient(path="./chroma_db")
@@ -28,6 +35,7 @@ def add_chunks(collection, chunks):
     """
     Embed và lưu toàn bộ chunks vào ChromaDB
     """
+    embed_chunks, _ = _import_embedder()
     embeddings = embed_chunks(chunks)
     
     collection.add(
@@ -42,6 +50,7 @@ def retrieve(collection, query, top_k=5):
     """
     Tìm top_k chunks liên quan nhất với câu hỏi
     """
+    _, embed_query = _import_embedder()
     query_embedding = embed_query(query)
     
     results = collection.query(
@@ -54,11 +63,15 @@ def retrieve(collection, query, top_k=5):
 
 # Test thử
 if __name__ == "__main__":
-    from .loader import load_pdf
-    from .chunker import chunk_text
+    try:
+        from .loader import load_pdf
+        from .chunker import chunk_text
+    except ImportError:
+        from loader import load_pdf
+        from chunker import chunk_text
     
     # Load và chunk PDF
-    text = load_pdf("data/CV.pdf")
+    text = load_pdf("data/Chuong_trinh_dao_tao.pdf")
     chunks = chunk_text(text)
     
     # Tạo collection và lưu vào ChromaDB
@@ -67,7 +80,7 @@ if __name__ == "__main__":
     
     # Test retrieve
     print("\n=== TEST RETRIEVE ===")
-    query = "GPA là bao nhiêu?"
+    query = "Khóa luận tốt nghiệp bao nhiêu tín chỉ?"
     print(f"Câu hỏi: {query}")
     
     top_chunks = retrieve(collection, query, top_k=3)

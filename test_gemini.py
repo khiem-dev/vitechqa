@@ -18,3 +18,6 @@ response = client.models.generate_content(
 )
 
 print(response.text)
+
+# Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser Cấp quyền để gọi môi trường ảo
+# .\rag-env\Scripts\activate Kích hoạt môi trường ảo
