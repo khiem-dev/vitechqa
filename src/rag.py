@@ -1,92 +1,77 @@
-import sys
-from pathlib import Path
-
-# Cho phép chạy `python src/rag.py` và import `from src.rag` trong app.py
-_ROOT = Path(__file__).resolve().parent.parent
-if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))
-
 import chromadb
-from src.loader import load_pdf
-from src.chunker import chunk_text
-from src.vector_store import create_collection, add_chunks, retrieve
-from src.generator import generate_answer
 
-DEFAULT_PDF = _ROOT / "data" / "Chuong_trinh_dao_tao.pdf"
-CHROMA_PATH = _ROOT / "chroma_db"
+try:
+    from .vector_store import create_collection, add_chunks, retrieve
+    from .loader import load_pdf
+    from .chunker import chunk_text
+    from .generator import generate_answer
+except ImportError:
+    from vector_store import create_collection, add_chunks, retrieve
+    from loader import load_pdf
+    from chunker import chunk_text
+    from generator import generate_answer
 
 
 class RAGPipeline:
     def __init__(self, pdf_path=None, collection_name="vitechqa"):
         self.collection_name = collection_name
-        self.client = chromadb.PersistentClient(path=str(CHROMA_PATH))
+        self.client = chromadb.PersistentClient(path="./chroma_db")
 
         if pdf_path:
-            path = Path(pdf_path)
-            if not path.is_absolute():
-                path = _ROOT / path
-            self.collection = self._build_index(path)
+            # Build index mới từ PDF
+            self.collection = self._build_index(pdf_path)
         else:
+            # Load index đã có sẵn
             self.collection = self._load_index()
 
     def _build_index(self, pdf_path):
-        print("Building index...")
-        text = load_pdf(str(pdf_path))
+        print("Đang build index...")
+        text = load_pdf(pdf_path)
         chunks = chunk_text(text)
         collection = create_collection(self.collection_name)
         add_chunks(collection, chunks)
-        print(f"Index built: {len(chunks)} chunks")
+        print(f"✅ Build xong: {len(chunks)} chunks")
         return collection
 
     def _load_index(self):
         try:
-            return self.client.get_collection(self.collection_name)
+            collection = self.client.get_collection(self.collection_name)
+            print(f"✅ Load index sẵn có: {collection.count()} chunks")
+            return collection
         except Exception:
-            raise RuntimeError(
-                "Chua co index. Chay: python src/rag.py --build"
-            ) from None
+            raise Exception(
+                "Chưa có index. Hãy chạy với pdf_path trước.\n"
+                "Ví dụ: rag = RAGPipeline(pdf_path='data/file.pdf')"
+            )
 
     def ask(self, question, top_k=5):
+        # Bước 1: Tìm chunks liên quan
         chunks = retrieve(self.collection, question, top_k)
+
+        # Bước 2: Sinh câu trả lời
         answer = generate_answer(chunks, question)
 
         return {
             "question": question,
             "answer": answer,
-            "sources": chunks,
+            "sources": chunks
         }
 
 
+# Test thử
 if __name__ == "__main__":
-    import argparse
+    # Lần đầu: build index từ PDF
+    rag = RAGPipeline(pdf_path="data/Chuong_trinh_dao_tao.pdf")
 
-    parser = argparse.ArgumentParser(description="Test RAG pipeline")
-    parser.add_argument(
-        "--build",
-        action="store_true",
-        help="Build index tu PDF (chi chay lan dau hoac khi can rebuild)",
-    )
-    parser.add_argument(
-        "--pdf",
-        type=Path,
-        default=DEFAULT_PDF,
-        help="Duong dan PDF khi dung --build",
-    )
-    parser.add_argument(
-        "question",
-        nargs="?",
-        default="Điều kiện tốt nghiệp là gì?",
-        help="Câu hỏi test",
-    )
-    args = parser.parse_args()
+    # Test hỏi đáp
+    questions = [
+        "Điều kiện tốt nghiệp là gì?",
+        "Tổng số tín chỉ cần tích lũy là bao nhiêu?",
+        "Khóa luận tốt nghiệp có bao nhiêu tín chỉ?"
+    ]
 
-    if args.build:
-        rag = RAGPipeline(pdf_path=args.pdf)
-    else:
-        rag = RAGPipeline()
-
-    result = rag.ask(args.question)
-    print(f"Cau hoi: {result['question']}")
-    print(f"Tra loi: {result['answer']}")
-    if result["sources"]:
-        print(f"\nNguon: {result['sources'][0][:200]}")
+    for q in questions:
+        result = rag.ask(q)
+        print(f"\n❓ {result['question']}")
+        print(f"💬 {result['answer']}")
+        print("-" * 50)

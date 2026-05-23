@@ -1,12 +1,10 @@
 from dotenv import load_dotenv
 import os
-import google.generativeai as genai
+from groq import Groq
 
 load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.5-flash")
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-# Prompt template — phần quan trọng nhất ảnh hưởng đến chất lượng
 PROMPT_TEMPLATE = """Bạn là trợ lý hỏi đáp tài liệu kỹ thuật tiếng Việt.
 Nhiệm vụ: Trả lời câu hỏi DỰA TRÊN ngữ cảnh được cung cấp.
 
@@ -25,36 +23,32 @@ TRẢ LỜI:"""
 
 
 def generate_answer(chunks, question):
-    """
-    Ghép chunks thành context, đưa vào Gemini để sinh câu trả lời
-    """
-    # Ghép các chunks lại thành context
     context = "\n\n---\n\n".join(chunks)
-    
-    # Điền vào template
     prompt = PROMPT_TEMPLATE.format(
         context=context,
         question=question
     )
-    
     try:
-        response = model.generate_content(prompt)
-        return response.text
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",  # model mạnh, miễn phí
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1  # thấp để câu trả lời ổn định
+        )
+        return response.choices[0].message.content
     except Exception as e:
-        return f"Lỗi khi gọi Gemini API: {e}"
+        return f"Lỗi: {e}"
 
 
 # Test thử
 if __name__ == "__main__":
-    # Giả lập chunks được retrieve
     test_chunks = [
         "Sinh viên phải tích lũy đủ 135 tín chỉ theo chương trình đào tạo.",
-        "Điều kiện tốt nghiệp: tích lũy đủ số tín chỉ của khối kiến thức giáo dục đại cương và giáo dục chuyên nghiệp như mô tả ở mục 6 và mục 7.",
-        "Đồng thời thỏa các điều kiện tại Điều 17 Quy chế đào tạo trình độ đại học."
+        "Khóa luận tốt nghiệp có 10 tín chỉ.",
+        "Điều kiện tốt nghiệp: tích lũy đủ số tín chỉ."
     ]
-    
-    question = "Điều kiện tốt nghiệp là gì?"
+    question = "Khóa luận tốt nghiệp có bao nhiêu tín chỉ?"
     answer = generate_answer(test_chunks, question)
-    
     print(f"Câu hỏi: {question}")
-    print(f"\nCâu trả lời:\n{answer}")
+    print(f"Trả lời: {answer}")

@@ -10,9 +10,10 @@ print("✅ Sẵn sàng!")
 
 def chat(question, history):
     """
-    Hàm xử lý câu hỏi — Gradio gọi hàm này mỗi khi user submit
+    Hàm xử lý câu hỏi — Cập nhật cấu trúc dict theo chuẩn Gradio mới
     """
     if not question.strip():
+        # Định dạng history lúc này là list các dict, xóa hội thoại trả về list rỗng []
         return "", history, "Vui lòng nhập câu hỏi."
     
     # Gọi RAG pipeline
@@ -31,15 +32,15 @@ def chat(question, history):
         sources_text += f"\n[Nguồn {i}]\n{src[:300]}...\n"
         sources_text += "-" * 30 + "\n"
     
-    # Thêm vào history
-    history.append((question, answer))
+    # SỬA TẠI ĐÂY: Thêm tin nhắn của User và Assistant theo chuẩn định dạng mới
+    history.append({"role": "user", "content": question})
+    history.append({"role": "assistant", "content": answer})
     
     return "", history, sources_text
 
 
 def clear_chat():
     return [], ""
-
 
 # Một số câu hỏi mẫu để demo
 example_questions = [
@@ -51,16 +52,8 @@ example_questions = [
 ]
 
 
-# Build giao diện
-with gr.Blocks(
-    title="ViTechQA",
-    theme=gr.themes.Soft(),
-    css="""
-        .title { text-align: center; margin-bottom: 10px; }
-        .subtitle { text-align: center; color: #666; margin-bottom: 20px; }
-        footer { display: none !important; }
-    """
-) as demo:
+# Build giao diện (Đã lược bỏ theme, css tại đây để tránh lỗi UserWarning)
+with gr.Blocks(title="ViTechQA") as demo:
     
     # Header
     gr.Markdown(
@@ -77,8 +70,8 @@ with gr.Blocks(
         with gr.Column(scale=3):
             chatbot = gr.Chatbot(
                 label="Hội thoại",
-                height=450,
-                bubble_full_width=False
+                height=450
+                # Đã loại bỏ 'bubble_full_width=False' gây lỗi crash hệ thống ở đây
             )
             
             with gr.Row():
@@ -144,6 +137,12 @@ with gr.Blocks(
 
 if __name__ == "__main__":
     demo.launch(
-        share=False,    # True nếu muốn tạo link public tạm thời
-        server_port=7860
+        share=False,    # Tạo link public tạm thời cho đồ án
+        server_port=7861,
+        theme=gr.themes.Soft(), # Đã chuyển tham số theme xuống đúng hàm launch() theo chuẩn mới
+        css="""
+            .title { text-align: center; margin-bottom: 10px; }
+            .subtitle { text-align: center; color: #666; margin-bottom: 20px; }
+            footer { display: none !important; }
+        """ # Đã chuyển tham số css xuống đúng hàm launch()
     )

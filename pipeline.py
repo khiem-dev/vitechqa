@@ -12,7 +12,7 @@ def build_index():
     """
     Chạy 1 lần để build index — nếu đã build rồi thì bỏ qua
     """
-    text = load_pdf("data/Chuong_trinh_dao_tao.pdf")
+    text = load_pdf("data/chuong_trinh_dao_tao.pdf")
     chunks = chunk_text(text)
     collection = create_collection()
     add_chunks(collection, chunks)
@@ -31,7 +31,7 @@ def get_collection():
         return build_index()
 
 
-def ask(question, top_k=7):
+def ask(question, top_k=5):
     """
     Hàm chính: nhận câu hỏi → retrieve → generate → trả lời
     """
