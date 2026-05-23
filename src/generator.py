@@ -1,14 +1,12 @@
-import os
 from dotenv import load_dotenv
-# 1. Đổi sang thư viện thế hệ mới của Google
-from google import genai
+import os
+import google.generativeai as genai
 
 load_dotenv()
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = genai.GenerativeModel("gemini-2.5-flash")
 
-# 2. Khởi tạo Client theo chuẩn mới (Tự động nạp GEMINI_API_KEY từ file .env)
-client = genai.Client()
-
-# Prompt template — giữ nguyên cấu trúc rất tốt của bạn
+# Prompt template — phần quan trọng nhất ảnh hưởng đến chất lượng
 PROMPT_TEMPLATE = """Bạn là trợ lý hỏi đáp tài liệu kỹ thuật tiếng Việt.
 Nhiệm vụ: Trả lời câu hỏi DỰA TRÊN ngữ cảnh được cung cấp.
 
@@ -40,11 +38,7 @@ def generate_answer(chunks, question):
     )
     
     try:
-        # 3. Sử dụng cú pháp gọi hàm mới và dòng model gemini-2.5-flash tối ưu
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt
-        )
+        response = model.generate_content(prompt)
         return response.text
     except Exception as e:
         return f"Lỗi khi gọi Gemini API: {e}"

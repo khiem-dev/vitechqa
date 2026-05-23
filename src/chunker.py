@@ -1,4 +1,4 @@
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 def chunk_text(text):
     """
@@ -7,7 +7,7 @@ def chunk_text(text):
     chunk_overlap: 50 ký tự overlap giữa 2 chunk liên tiếp
     """
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=600,
+        chunk_size=512,
         chunk_overlap=50,
         separators=["\n\n", "\n", ".", " "]
         # Thứ tự ưu tiên: tách ở đoạn trống trước,

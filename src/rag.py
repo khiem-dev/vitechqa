@@ -1,67 +1,92 @@
-import chromadb
+import sys
+from pathlib import Path
 
-try:
-    from .loader import load_pdf
-    from .chunker import chunk_text
-    from .vector_store import create_collection, add_chunks, retrieve
-    from .generator import generate_answer
-except ImportError:
-    from loader import load_pdf
-    from chunker import chunk_text
-    from vector_store import create_collection, add_chunks, retrieve
-    from generator import generate_answer
+# Cho phép chạy `python src/rag.py` và import `from src.rag` trong app.py
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+import chromadb
+from src.loader import load_pdf
+from src.chunker import chunk_text
+from src.vector_store import create_collection, add_chunks, retrieve
+from src.generator import generate_answer
+
+DEFAULT_PDF = _ROOT / "data" / "Chuong_trinh_dao_tao.pdf"
+CHROMA_PATH = _ROOT / "chroma_db"
 
 
 class RAGPipeline:
     def __init__(self, pdf_path=None, collection_name="vitechqa"):
         self.collection_name = collection_name
-        self.client = chromadb.PersistentClient(path="./chroma_db")
-        
+        self.client = chromadb.PersistentClient(path=str(CHROMA_PATH))
+
         if pdf_path:
-            # Build index mới từ PDF
-            self.collection = self._build_index(pdf_path)
+            path = Path(pdf_path)
+            if not path.is_absolute():
+                path = _ROOT / path
+            self.collection = self._build_index(path)
         else:
-            # Load index đã có
             self.collection = self._load_index()
-    
+
     def _build_index(self, pdf_path):
         print("Building index...")
-        text = load_pdf(pdf_path)
+        text = load_pdf(str(pdf_path))
         chunks = chunk_text(text)
         collection = create_collection(self.collection_name)
         add_chunks(collection, chunks)
-        print(f"✅ Index built: {len(chunks)} chunks")
+        print(f"Index built: {len(chunks)} chunks")
         return collection
-    
+
     def _load_index(self):
         try:
             return self.client.get_collection(self.collection_name)
-        except:
-            raise Exception("Chưa có index. Hãy chạy với pdf_path trước.")
-    
+        except Exception:
+            raise RuntimeError(
+                "Chua co index. Chay: python src/rag.py --build"
+            ) from None
+
     def ask(self, question, top_k=5):
-        # Retrieve
         chunks = retrieve(self.collection, question, top_k)
-        
-        # Generate
         answer = generate_answer(chunks, question)
-        
+
         return {
             "question": question,
             "answer": answer,
-            "sources": chunks
+            "sources": chunks,
         }
 
 
-# Test thử
 if __name__ == "__main__":
-    # ĐƯỜNG DẪN ĐÚNG: Chỉ cần đi thẳng vào thư mục data
-    pdf_path = "data/Chuong_trinh_dao_tao.pdf"
-    
-    print(f"⏳ Bắt đầu nạp file từ: {pdf_path}")
-    rag = RAGPipeline(pdf_path=pdf_path)
-    
-    # Thực hiện hỏi đáp
-    result = rag.ask("Sinh viên phải tích lũy đủ bao nhiêu tín chỉ?")
-    print(f"\n❓ Câu hỏi: {result['question']}")
-    print(f"🤖 Trả lời: {result['answer']}")
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Test RAG pipeline")
+    parser.add_argument(
+        "--build",
+        action="store_true",
+        help="Build index tu PDF (chi chay lan dau hoac khi can rebuild)",
+    )
+    parser.add_argument(
+        "--pdf",
+        type=Path,
+        default=DEFAULT_PDF,
+        help="Duong dan PDF khi dung --build",
+    )
+    parser.add_argument(
+        "question",
+        nargs="?",
+        default="Điều kiện tốt nghiệp là gì?",
+        help="Câu hỏi test",
+    )
+    args = parser.parse_args()
+
+    if args.build:
+        rag = RAGPipeline(pdf_path=args.pdf)
+    else:
+        rag = RAGPipeline()
+
+    result = rag.ask(args.question)
+    print(f"Cau hoi: {result['question']}")
+    print(f"Tra loi: {result['answer']}")
+    if result["sources"]:
+        print(f"\nNguon: {result['sources'][0][:200]}")
