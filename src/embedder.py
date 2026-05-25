@@ -1,12 +1,24 @@
+# Thiết lập môi trường đọc hàm .env và lấy biến thông qua os.getenv()
 import os
 from dotenv import load_dotenv
 load_dotenv()
+
+# SentenceTransformer là thư viện load và chạy embedding model
 from sentence_transformers import SentenceTransformer
 import numpy as np
+
 
 print("Đang load model bge-m3...", flush=True)
 model = SentenceTransformer("BAAI/bge-m3")
 print("Load model xong!", flush=True)
+"""
+Mô hình hỗ trợ nhiều ngôn ngữ
+Tạo vector 1024 chiều cho mỗi đoạn text
+Nó tìm kiếm thông tin bằng cách:
+1. Dense Retrieval: Biến câu hỏi thành vector, sau đó dùng công thức để tìm độ tương đồng
+2. Sparse Retrieval: Trải dài câu theo từ điển, chỗ nào là từ thì có giá trị > 0 
+3. Multi-vector: Không nén lại thành 1024, mà mỗi từ là một vector, sau đó đem so sánh với từng từ trong từ điển
+"""
 
 def embed_chunks(chunks):
     """
