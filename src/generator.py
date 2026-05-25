@@ -30,11 +30,11 @@ def generate_answer(chunks, question):
     )
     try:
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",  # model mạnh, miễn phí
+            model="llama-3.3-70b-versatile",  
             messages=[
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.1  # thấp để câu trả lời ổn định
+            temperature=0.1  
         )
         return response.choices[0].message.content
     except Exception as e:
