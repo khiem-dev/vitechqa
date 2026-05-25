@@ -1,19 +1,27 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+"""
+LangChain cung cấp nhiều loại TextSplitter
+RecursiveCharacterTextSplitter là loại phổ biến nhất vì hệ thống sẽ cố gắng cắt dựa trên cấu trúc tự nhiên của văn bản:
+dấu ngắt đoạn (\n\n) -> dấu xuống dòng (\n) -> khoảng trắng -> "" (cắt từng ký tự) 
+"""
 
 def chunk_text(text):
     """
     Cắt text thành các đoạn nhỏ để embed
     chunk_size: 512 ký tự mỗi chunk
-    chunk_overlap: 50 ký tự overlap giữa 2 chunk liên tiếp
+    chunk_overlap: 50 ký tự overlap giữa 2 chunk liên tiếp. Chi tiết:
+    Lấy ví dụ chunk1, chunk2. Lấy 50 ký tự cuối của chunk1 làm phần đầu của chunk2
+    Tránh làm mất nghĩa câu (thường lấy 10-15%)
     """
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=512,
         chunk_overlap=50,
-        separators=["\n\n", "\n", ".", " "]
+        separators=["\n\n", "\n", ". ", " "]
         # Thứ tự ưu tiên: tách ở đoạn trống trước,
         # rồi xuống dòng, rồi dấu chấm, rồi khoảng trắng
     )
     
+    # Thực thi phần lệnh ở trên với biến text
     chunks = splitter.split_text(text)
     print(f"Tổng số chunks: {len(chunks)}")
     return chunks
