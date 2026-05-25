@@ -39,6 +39,8 @@ def embed_chunks(chunks):
 def embed_query(query):
     """
     Embed 1 câu hỏi để dùng khi retrieve
+    [query] → list vì model.encode nhận list
+    [0] → lấy phần tử đầu tiên (và duy nhất) ra khỏi list
     """
     return model.encode([query])[0]
 
