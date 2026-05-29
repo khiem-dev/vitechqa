@@ -1,24 +1,13 @@
 import gradio as gr
 import os
 import time
+from src.rag import RAGPipeline
 
 # Trên HuggingFace, API key lưu trong Secrets (không dùng .env)
-api_key = os.environ.get("GEMINI_API_KEY")
+api_key = os.environ.get("GROQ_API_KEY")
 
-if api_key:
-    # Đang chạy trên HuggingFace hoặc có key
-    import google.generativeai as genai
-    from src.rag import RAGPipeline
-    genai.configure(api_key=api_key)
-    
-    # Trên HuggingFace không có file PDF sẵn
-    # Dùng chế độ upload file thay vì hardcode path
-    rag = None
-    INDEX_BUILT = False
-else:
-    rag = None
-    INDEX_BUILT = False
-
+rag = None 
+INDEX_BUILT = False
 
 def build_index_from_upload(pdf_file):
     """
@@ -68,8 +57,11 @@ def chat(question, history):
     for i, src in enumerate(result["sources"][:3], 1):
         sources_text += f"\n[{i}] {src[:300]}...\n{'-'*30}\n"
     
-    history.append((question, result["answer"]))
-    return "", history, sources_text
+    new_history = history + [
+        {"role": "user", "content": question},
+        {"role": "assistant", "content": result["answer"]}
+    ]
+    return "", new_history, sources_text
 
 
 def clear_all():
