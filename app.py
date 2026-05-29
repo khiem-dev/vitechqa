@@ -1,14 +1,38 @@
 import gradio as gr
+# Gradio là thư viện tạo web UI cho AI/ML project
+# Chỉ cần ~20 dòng code để có giao diện web hoàn chỉnh
+# Không cần biết HTML/CSS/JavaScript
+# Tự động tạo server local và có thể deploy lên HuggingFace Spaces
 import time
+# Dùng để đo thời gian xử lý mỗi câu hỏi
+# Giúp user biết hệ thống đang hoạt động và nhanh hay chậm
 from src.rag import RAGPipeline
+# Import class RAGPipeline từ src/rag.py
+# "src.rag" = file rag.py trong thư mục src
+# RAGPipeline chứa toàn bộ logic: retrieve + generate
 
 # Khởi tạo RAG pipeline 1 lần khi app start
 print("Đang khởi tạo RAG pipeline...")
 rag = RAGPipeline()  # Load index đã có sẵn
 print("✅ Sẵn sàng!")
 
-
+# ============================================================
+# HÀM XỬ LÝ CHÍNH — Gradio gọi hàm này mỗi khi user submit
+# ============================================================
 def chat(question, history):
+    """
+    Xử lý câu hỏi của user và trả về câu trả lời.
+
+    Gradio tự động truyền các tham số vào hàm này:
+        question: text user vừa nhập vào Textbox
+        history: list các cặp (câu hỏi, câu trả lời) trước đó
+                 format: [("hỏi 1", "trả lời 1"), ("hỏi 2", "trả lời 2")]
+
+    Trả về tuple 3 giá trị — Gradio map vào outputs theo thứ tự:
+        "": xóa nội dung Textbox sau khi submit
+        history: cập nhật Chatbot với câu hỏi/trả lời mới
+        sources_text: cập nhật Textbox nguồn tham khảo
+    """
     if not question.strip():
         return "", history, "Vui lòng nhập câu hỏi."
 
@@ -24,8 +48,11 @@ def chat(question, history):
         sources_text += f"\n[Nguồn {i}]\n{src[:300]}\n"
         sources_text += "-" * 30 + "\n"
 
-    history.append((question, result["answer"]))
-    return "", history, sources_text
+    new_history = history + [
+    {"role": "user", "content": question},
+    {"role": "assistant", "content": result["answer"]}
+    ]
+    return "", new_history, sources_text
 
 
 def clear_chat():
@@ -41,7 +68,7 @@ examples = [
     "Các môn tự chọn gồm những môn nào?"
 ]
 
-with gr.Blocks(title="ViTechQA", theme=gr.themes.Soft()) as demo:
+with gr.Blocks(title="ViTechQA") as demo:
 
     gr.Markdown("""
     # 🤖 ViTechQA
@@ -56,12 +83,12 @@ with gr.Blocks(title="ViTechQA", theme=gr.themes.Soft()) as demo:
             chatbot = gr.Chatbot(
                 label="Hội thoại",
                 height=450,
-                bubble_full_width=False
+                value=[],
             )
             with gr.Row():
                 question_input = gr.Textbox(
                     placeholder="Nhập câu hỏi của bạn...",
-                    label="",
+                    label=False,
                     scale=4,
                     container=False
                 )
@@ -105,4 +132,7 @@ with gr.Blocks(title="ViTechQA", theme=gr.themes.Soft()) as demo:
 
 
 if __name__ == "__main__":
-    demo.launch(server_port=7861)
+    demo.launch(
+        server_port=7861,
+        theme=gr.themes.Soft()
+    )
